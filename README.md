@@ -57,3 +57,9 @@ java -jar target/poo-spring-ai-0.0.1-SNAPSHOT.jar
 Os testes usam H2 em memória e IA simulada, sem chamadas pagas ou necessidade de chave. Cobrem vitória, derrota, normalização, erros de API, respostas inválidas, prompt, páginas e persistência entre requisições. Execute o JAR a partir da raiz para carregar o `.env` e o mesmo banco.
 
 O `.gitignore` exclui `.env`, banco local, builds, arquivos de IDE e ZIPs dos exemplos. Apenas `.env.example`, sem credenciais, é versionado.
+
+## Validação da entrega
+
+Os sete testes automatizados passaram e o JAR foi gerado. As páginas foram verificadas por testes MVC e por requisições HTTP locais. O banco em arquivo foi reaberto após reiniciar a aplicação, preservando a partida.
+
+A chamada real ao Gemini não pôde ser concluída neste ambiente: o modelo `gemini-2.5-flash` retornou HTTP 404 informando indisponibilidade para novos usuários e recomendando `gemini-3.8-flash`. Esse passou a ser o padrão configurado; a verificação seguinte terminou em timeout. Portanto, a integração real ainda precisa ser confirmada em um ambiente com acesso ao modelo e cota disponível. O jogo trata essa falha sem consumir tentativas. Não foi feita inspeção visual em navegador nesta validação.
