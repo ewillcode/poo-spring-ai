@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import java.text.Normalizer;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.function.Consumer;
 @Service
 public class ForcaService {
     private final PartidaRepository partidas;
@@ -25,7 +26,7 @@ public class ForcaService {
     public Partida iniciar(String palavra, String tema) {
         String normalizada = normalizar(palavra);
         if (!normalizada.matches("[A-Z]{2,30}") || !palavra.trim().matches("[\\p{L}]{2,30}"))
-            throw new IllegalArgumentException("Use uma palavra de 2 a 30 letras, sem espacos ou simbolos.");
+            throw new IllegalArgumentException("Use uma palavra de 2 a 30 letras, sem espaços ou símbolos.");
         if (tema.isBlank() || tema.length() > 80 || tema.contains("\n") || tema.contains("\r"))
             throw new IllegalArgumentException("Informe um tema de 1 a 80 caracteres em uma linha.");
         Partida p = new Partida(); p.setPalavra(normalizada); p.setTema(tema.trim());
@@ -34,7 +35,7 @@ public class ForcaService {
     }
     public List<Partida> listar() { return partidas.findAll(Sort.by(Sort.Direction.DESC, "dataHora")); }
     public Partida obter(Long id) {
-        return partidas.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Partida nao encontrada."));
+        return partidas.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Partida não encontrada."));
     }
     public EstadoPartidaDTO estado(Long id) { return montarEstado(obter(id), jogadas.findByPartidaIdOrderByOrdemAsc(id)); }
     private EstadoPartidaDTO montarEstado(Partida p, List<Jogada> historico) {
@@ -45,18 +46,22 @@ public class ForcaService {
         String mensagem = switch(p.getResultado()) {
             case VITORIA_IA -> "A IA descobriu a palavra e venceu!";
             case DERROTA_IA -> "A IA perdeu: cinco erros!";
-            default -> "Peca o proximo palpite da IA.";
+            default -> "Peça o próximo palpite da IA.";
         };
         return new EstadoPartidaDTO(p.getId(), p.getTema(), mascara.toString(), letras, p.getErros(),
                 5 - p.getErros(), p.getResultado(), fim, mensagem, fim ? p.getPalavra() : null);
     }
     @Transactional
     public EstadoPartidaDTO jogar(Long id) {
+        return jogar(id, mensagem -> {});
+    }
+    @Transactional
+    public EstadoPartidaDTO jogar(Long id, Consumer<String> progresso) {
         Partida p = obter(id);
         if (p.getResultado() != ResultadoPartida.EM_ANDAMENTO) throw new IllegalArgumentException("Partida encerrada.");
         List<Jogada> historico = new ArrayList<>(jogadas.findByPartidaIdOrderByOrdemAsc(id));
         EstadoPartidaDTO atual = montarEstado(p, historico);
-        String letra = gemini.escolherLetra(p.getTema(), atual.mascara(), atual.letras());
+        String letra = gemini.escolherLetra(p.getTema(), atual.mascara(), atual.letras(), progresso);
         Jogada j = new Jogada(); j.setPartida(p); j.setLetra(letra); j.setOrdem(p.getTurnos()+1);
         j.setAcerto(p.getPalavra().contains(letra));
         if (!j.getAcerto()) p.setErros(p.getErros()+1);

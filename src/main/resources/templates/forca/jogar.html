@@ -5,7 +5,10 @@
 <path id="bracoE" d="M100 80 L50 120"/><path id="bracoD" d="M100 80 L150 120"/>
 <path id="pernaE" d="M100 145 L60 210"/><path id="pernaD" d="M100 145 L140 210"/></svg>
 <p id="mascara" class="mascara"></p><p id="letras"></p><p id="erros"></p><p id="mensagem" role="status"></p><p id="palavra"></p>
-<button id="palpite" onclick="jogar()">Pedir palpite da IA</button><p><a href="/forca">Voltar ao inicio</a></p>
+<button id="palpite" onclick="jogar()">Pedir palpite da IA</button><p><a href="/forca">Voltar ao início</a></p>
+<h2>Acompanhamento da IA</h2>
+<p id="tempo" role="status"></p>
+<ol id="log" aria-live="polite" aria-label="Registro das chamadas à IA"></ol>
 <script th:inline="javascript">
 const inicial = /*[[${estado}]]*/ {};
 const botao = document.getElementById('palpite');
@@ -20,14 +23,55 @@ function atualizar(e) {
 }
 async function jogar() {
  if (botao.disabled) return;
- botao.disabled = true; botao.textContent = 'A IA esta pensando...';
+ botao.disabled = true; botao.textContent = 'A IA está pensando...';
+ const inicio = Date.now();
+ const registrar = mensagem => {
+  const item = document.createElement('li');
+  item.textContent = new Date().toLocaleTimeString('pt-BR') + ' — ' + mensagem;
+  document.getElementById('log').appendChild(item);
+ };
+ registrar('Solicitando um novo palpite...');
+ const relogio = setInterval(() => {
+  document.getElementById('tempo').textContent = 'Aguardando resposta: ' + Math.floor((Date.now() - inicio) / 1000) + ' s';
+ }, 1000);
+ const controle = new AbortController();
+ const limite = setTimeout(() => controle.abort(), 110000);
+ let concluida = false;
+ let falhaConfirmada = false;
  try {
-  const r = await fetch('/forca/jogar/' + inicial.id + '/genai', {method:'POST'});
-  const e = await r.json();
-  if (!r.ok) throw new Error(e.mensagem || 'Nao foi possivel jogar. Recarregue ou tente novamente.');
-  atualizar(e);
- } catch (erro) { document.getElementById('mensagem').textContent = erro.message; botao.disabled = false; }
- finally { botao.textContent = 'Pedir palpite da IA'; }
+  const r = await fetch('/forca/jogar/' + inicial.id + '/genai/acompanhar', {method:'POST', signal:controle.signal});
+  if (!r.ok) throw new Error('Não foi possível iniciar a chamada (HTTP ' + r.status + ').');
+  const leitor = r.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  while (true) {
+   const {value, done} = await leitor.read();
+   buffer += done ? decoder.decode() : decoder.decode(value, {stream:true});
+   let fim;
+   while ((fim = buffer.indexOf('\n\n')) >= 0) {
+    const bloco = buffer.slice(0, fim); buffer = buffer.slice(fim + 2);
+    const linhas = bloco.split('\n');
+    const tipo = linhas.find(l => l.startsWith('event:'))?.slice(6).trim();
+    const dados = linhas.filter(l => l.startsWith('data:')).map(l => l.slice(5)).join('\n');
+    if (tipo === 'progresso') registrar(dados);
+    if (tipo === 'falha') { falhaConfirmada = true; throw new Error(dados); }
+    if (tipo === 'resultado') {
+     const estado = JSON.parse(dados); atualizar(estado); concluida = true;
+     registrar('Jogada registrada. ' + estado.mensagem);
+    }
+   }
+   if (done) break;
+  }
+  if (!concluida) throw new Error('A conexão terminou sem confirmar o resultado. Recarregue a página.');
+ } catch (erro) {
+  const mensagem = erro.name === 'AbortError' ? 'O tempo de espera terminou. Recarregue a página para conferir o estado da partida.' : erro.message;
+  registrar(mensagem); document.getElementById('mensagem').textContent = mensagem;
+  if (!concluida) botao.disabled = !falhaConfirmada;
+ } finally {
+  clearInterval(relogio); clearTimeout(limite);
+  document.getElementById('tempo').textContent = 'Chamada encerrada após ' + Math.floor((Date.now() - inicio) / 1000) + ' s.';
+  botao.textContent = 'Pedir palpite da IA';
+ }
 }
 atualizar(inicial);
 </script></body></html>

@@ -6,6 +6,7 @@ import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.junit.jupiter.api.Test;
 import java.util.List;
+import java.util.ArrayList;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 class GeminiTests {
@@ -13,6 +14,28 @@ class GeminiTests {
   var service=new GeminiService(ChatClient.builder(mock(ChatModel.class)));
   String prompt=service.montarPrompt("objetos","_A_A",List.of("A","B"));
   assertTrue(prompt.contains("_A_A")); assertTrue(prompt.contains("4")); assertFalse(prompt.contains("CASA"));
+ }
+ @Test void repeteAteTresVezesEInformaProgresso() {
+  ChatClient client=mock(ChatClient.class, RETURNS_DEEP_STUBS);
+  ChatClient.Builder builder=mock(ChatClient.Builder.class);
+  when(builder.build()).thenReturn(client);
+  var chamada=client.prompt().system(anyString()).user(anyString()).call();
+  when(chamada.content()).thenThrow(new RuntimeException("falha"))
+    .thenThrow(new RuntimeException("falha")).thenThrow(new RuntimeException("falha")).thenReturn("B");
+  var mensagens=new ArrayList<String>();
+  assertEquals("B",new GeminiService(builder).escolherLetra("tema","_A_A",List.of("A"),mensagens::add));
+  verify(chamada,times(4)).content();
+  assertTrue(mensagens.stream().anyMatch(m -> m.contains("tentativa 4/4")));
+  assertTrue(mensagens.get(mensagens.size()-1).contains("letra B"));
+ }
+ @Test void encerraDepoisDaQuartaFalha() {
+  ChatClient client=mock(ChatClient.class, RETURNS_DEEP_STUBS);
+  ChatClient.Builder builder=mock(ChatClient.Builder.class);
+  when(builder.build()).thenReturn(client);
+  var chamada=client.prompt().system(anyString()).user(anyString()).call();
+  when(chamada.content()).thenThrow(new RuntimeException("falha"));
+  assertThrows(IllegalStateException.class,()->new GeminiService(builder).escolherLetra("tema","__",List.of()));
+  verify(chamada,times(4)).content();
  }
  @Test void rejeitaRespostaInvalidaERepetida() {
   ChatClient client=mock(ChatClient.class, RETURNS_DEEP_STUBS);
