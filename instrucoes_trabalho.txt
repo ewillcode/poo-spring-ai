@@ -1,0 +1,22 @@
+Título:
+Atividade - GenAI
+Instruções:
+Desenvolva um Sistema WEB com o SpringAI. O tema do sistema é livre.
+
+ 
+
+O sistema deverá:
+
+Possuir integração com banco de dados
+Interface Web
+Integração com GenAI via SpringAI
+Funcionalidades que utilizem o GenAI
+ 
+
+Atenção: Não adicionar no github a chave da api do genai.
+
+ 
+
+Entrega
+
+Anexe na resposta o link do seu repositório no github.

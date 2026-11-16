@@ -1,0 +1,9 @@
+<!DOCTYPE html><html lang="pt-BR" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><title>Forca com IA</title><link rel="stylesheet" href="/estilo.css"></head><body>
+<h1>Forca com IA</h1><p>Escolha uma palavra. O Gemini tenta descobrir, uma letra por vez, com ate cinco erros.</p>
+<p class="erro" th:if="${erro}" th:text="${erro}"></p>
+<form action="/forca/iniciar" method="post"><p><label>Tema <input name="tema" maxlength="80" required placeholder="Ex.: animais"></label></p>
+<p><label>Palavra secreta <input type="password" name="palavra" minlength="2" maxlength="30" required autocomplete="off"></label></p>
+<p>Use uma palavra de 2 a 30 letras. Acentos e cedilha sao desconsiderados. Sem espacos, numeros ou simbolos.</p><button>Comecar partida</button></form>
+<h2>Historico</h2><table><thead><tr><th>Data</th><th>Tema</th><th>Resultado</th><th></th></tr></thead><tbody>
+<tr th:each="p : ${partidas}"><td th:text="${#temporals.format(p.dataHora, 'dd/MM/yyyy HH:mm')}"></td><td th:text="${p.tema}"></td><td th:text="${p.resultado}"></td><td><a th:href="@{/forca/jogar/{id}(id=${p.id})}">Abrir</a></td></tr></tbody></table>
+<p th:if="${#lists.isEmpty(partidas)}">Nenhuma partida ainda.</p></body></html>

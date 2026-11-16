@@ -1,0 +1,33 @@
+<!DOCTYPE html><html lang="pt-BR" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><title>Partida de forca</title><link rel="stylesheet" href="/estilo.css"></head><body>
+<h1>Forca com IA</h1><p>Tema: <strong th:text="${estado.tema}"></strong></p>
+<svg viewBox="0 0 200 240" width="200" height="240" role="img" aria-label="Boneco que perde partes a cada erro" fill="none" stroke="currentColor" stroke-width="5">
+<g id="centro"><circle cx="100" cy="40" r="22"/><path d="M100 62 V145"/></g>
+<path id="bracoE" d="M100 80 L50 120"/><path id="bracoD" d="M100 80 L150 120"/>
+<path id="pernaE" d="M100 145 L60 210"/><path id="pernaD" d="M100 145 L140 210"/></svg>
+<p id="mascara" class="mascara"></p><p id="letras"></p><p id="erros"></p><p id="mensagem" role="status"></p><p id="palavra"></p>
+<button id="palpite" onclick="jogar()">Pedir palpite da IA</button><p><a href="/forca">Voltar ao inicio</a></p>
+<script th:inline="javascript">
+const inicial = /*[[${estado}]]*/ {};
+const botao = document.getElementById('palpite');
+function atualizar(e) {
+ document.getElementById('mascara').textContent = e.mascara.split('').join(' ');
+ document.getElementById('letras').textContent = 'Letras tentadas: ' + (e.letras.join(', ') || 'nenhuma');
+ document.getElementById('erros').textContent = 'Erros: ' + e.erros + '/5 | Restantes: ' + e.restantes;
+ document.getElementById('mensagem').textContent = e.mensagem;
+ document.getElementById('palavra').textContent = e.palavra ? 'Palavra: ' + e.palavra : '';
+ ['pernaD','pernaE','bracoD','bracoE','centro'].forEach((id,i) => document.getElementById(id).style.display = e.erros > i ? 'none' : '');
+ botao.disabled = e.finalizada;
+}
+async function jogar() {
+ if (botao.disabled) return;
+ botao.disabled = true; botao.textContent = 'A IA esta pensando...';
+ try {
+  const r = await fetch('/forca/jogar/' + inicial.id + '/genai', {method:'POST'});
+  const e = await r.json();
+  if (!r.ok) throw new Error(e.mensagem || 'Nao foi possivel jogar. Recarregue ou tente novamente.');
+  atualizar(e);
+ } catch (erro) { document.getElementById('mensagem').textContent = erro.message; botao.disabled = false; }
+ finally { botao.textContent = 'Pedir palpite da IA'; }
+}
+atualizar(inicial);
+</script></body></html>
