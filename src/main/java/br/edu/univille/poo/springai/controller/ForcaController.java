@@ -30,7 +30,7 @@ public class ForcaController {
     @PostMapping(value = "/forca/jogar/{id}/genai/acompanhar", produces = "text/event-stream")
     public SseEmitter acompanhar(@PathVariable Long id) {
         service.obter(id);
-        SseEmitter eventos = new SseEmitter(100_000L);
+        SseEmitter eventos = new SseEmitter(290_000L);
         CompletableFuture.runAsync(() -> {
             try {
                 enviar(eventos, "progresso", "Solicitação recebida. Preparando o palpite...");

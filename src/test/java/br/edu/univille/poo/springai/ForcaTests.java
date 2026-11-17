@@ -14,10 +14,16 @@ import static org.mockito.Mockito.*;
 import static org.mockito.ArgumentMatchers.*;
 @SpringBootTest(properties={"spring.datasource.url=jdbc:h2:mem:testes", "spring.config.import=", "spring.ai.model.chat=none"})
 @AutoConfigureMockMvc
+@org.junit.jupiter.api.TestMethodOrder(org.junit.jupiter.api.MethodOrderer.OrderAnnotation.class)
 class ForcaTests {
  @Autowired ForcaService service;
  @Autowired MockMvc mvc;
  @MockitoBean GeminiService gemini;
+ @Test @org.junit.jupiter.api.Order(1)
+ void inicializacaoNaoCriaPartidasNemJogadas() {
+  assertTrue(service.listar().isEmpty());
+  verifyNoInteractions(gemini);
+ }
  @Test void transmiteProgressoEResultado() throws Exception {
   var p=service.iniciar("casa","objetos");
   when(gemini.escolherLetra(anyString(),anyString(),anyList(),any())).thenAnswer(invocacao -> {

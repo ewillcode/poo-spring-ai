@@ -35,7 +35,7 @@ async function jogar() {
   document.getElementById('tempo').textContent = 'Aguardando resposta: ' + Math.floor((Date.now() - inicio) / 1000) + ' s';
  }, 1000);
  const controle = new AbortController();
- const limite = setTimeout(() => controle.abort(), 110000);
+ const limite = setTimeout(() => controle.abort(), 300000);
  let concluida = false;
  let falhaConfirmada = false;
  try {
